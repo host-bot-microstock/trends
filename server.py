@@ -37,13 +37,125 @@ app.add_middleware(
 # Di aplikasi nyata, daftar ini akan lebih dinamis, mungkin dari database
 # atau berdasarkan input pengguna. Untuk MVP ini, kita tentukan di sini.
 KEYWORDS_TO_ANALYZE = [
+    # Teknologi & Masa Depan
     "AI generated background",
-    "sustainable lifestyle",
+    "virtual reality experience",
+    "metaverse avatar",
+    "cyber security threat",
+    "data visualization",
+    "blockchain technology",
+    "smart city",
+    "robotics and automation",
+    "quantum computing",
+    "neural network",
+
+    # Bisnis & Keuangan
     "remote work setup",
+    "team collaboration online",
+    "startup business meeting",
+    "financial growth chart",
+    "e-commerce shopping",
+    "supply chain logistics",
+    "digital marketing strategy",
+    "customer service success",
+    "real estate investment",
+    "cryptocurrency trading",
+
+    # Gaya Hidup & Kesejahteraan
+    "sustainable lifestyle",
     "mental health awareness",
+    "mindfulness and meditation",
+    "work life balance",
+    "healthy eating habits",
+    "home workout",
+    "digital detox",
     "local travel",
-    "3d character",
-    "cyber security"
+    "DIY home improvement",
+    "pet adoption",
+
+    # Alam & Lingkungan
+    "climate change action",
+    "renewable energy sources",
+    "plastic pollution",
+    "wildlife conservation",
+    "drone aerial landscape",
+    "forest bathing",
+    "underwater photography",
+    "extreme weather",
+    "organic farming",
+    "beautiful nature scenery",
+
+    # Konsep Abstrak & Desain
+    "retro futuristic",
+    "abstract background",
+    "geometric patterns",
+    "liquid ink art",
+    "3d render abstract",
+    "minimalist design",
+    "vaporwave aesthetic",
+    "dark mode UI",
+    "gradient mesh",
+    "flat design illustration",
+
+    # Orang & Keberagaman
+    "diversity and inclusion",
+    "multi-ethnic friends group",
+    "empowered women",
+    "senior couple enjoying retirement",
+    "father and son bonding",
+    "people with disabilities",
+    "LGBTQ pride",
+    "authentic portraits",
+    "candid moments",
+    "people working together",
+
+    # Makanan & Minuman
+    "plant-based food",
+    "gourmet cooking",
+    "artisanal coffee",
+    "street food festival",
+    "farm to table",
+    "baking at home",
+    "craft beer",
+    "vegan recipe",
+    "colorful cocktails",
+    "healthy smoothie",
+
+    # Perjalanan & Budaya
+    "digital nomad lifestyle",
+    "cultural festival",
+    "adventure travel",
+    "historical landmarks",
+    "road trip",
+    "eco tourism",
+    "exotic destinations",
+    "staycation",
+    "world map",
+    "traditional ceremony",
+
+    # Pendidikan & Sains
+    "online learning",
+    "e-learning platform",
+    "scientific research",
+    "laboratory experiment",
+    "back to school",
+    "STEM education",
+    "medical innovation",
+    "DNA structure",
+    "space exploration",
+    "virtual classroom",
+
+    # Musiman & Acara
+    "new year celebration",
+    "valentines day couple",
+    "halloween spooky background",
+    "christmas holiday season",
+    "ramadan kareem",
+    "black friday sale",
+    "summer vacation",
+    "autumn leaves",
+    "winter wonderland",
+    "spring flowers"
 ]
 
 # --- API Endpoints ---
