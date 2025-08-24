@@ -1,3 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrendLens - Microstock Trend Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/weekday.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/weekOfYear.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .active-nav {
+            background-color: #2563eb;
+            color: white;
+        }
+        .calendar-day {
+            transition: all 0.2s ease-in-out;
+        }
+        .calendar-day:hover {
+            transform: scale(1.05);
+            background-color: #374151;
+        }
+        .premium-feature::after {
+            content: 'PREMIUM';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background-color: #fbbf24;
+            color: #422006;
+            padding: 2px 6px;
+            font-size: 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        /* Tambahkan style untuk loading spinner */
+        .loader {
+            border: 4px solid #f3f3f330;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+    <div class="flex h-screen">
+        <aside class="w-64 bg-gray-800/50 backdrop-blur-sm border-r border-gray-700/50 p-4 flex flex-col">
+            <h1 class="text-2xl font-bold text-white mb-8">
+                Trend<span class="text-blue-500">Lens</span>
+            </h1>
+            <nav class="flex flex-col space-y-2">
+                <a href="#" id="nav-dashboard" class="nav-link active-nav flex items-center px-4 py-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-3"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    Dashboard
+                </a>
+                <a href="#" id="nav-explore" class="nav-link flex items-center px-4 py-2 rounded-lg hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    Explore Trends
+                </a>
+                <a href="#" id="nav-calendar" class="nav-link flex items-center px-4 py-2 rounded-lg hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-3"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    Seasonal Calendar
+                </a>
+                <a href="#" id="nav-notifications" class="nav-link flex items-center px-4 py-2 rounded-lg hover:bg-gray-700 relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-3"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    Notifications
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                </a>
+            </nav>
+            <div class="mt-auto">
+                <div class="bg-blue-900/50 border border-blue-700 rounded-lg p-4 text-center">
+                    <h3 class="font-bold text-white">Unlock All Features</h3>
+                    <p class="text-sm text-blue-200 mt-1 mb-3">Get unlimited access to trends, history, and alerts.</p>
+                    <button id="upgrade-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Upgrade Now</button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-6 overflow-y-auto">
+            <div id="view-dashboard" class="view">
+                <h2 class="text-3xl font-bold text-white mb-6">Dashboard</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-gray-800/70 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-semibold mb-4 text-white">🌟 Golden Keywords (High Demand, Low Competition)</h3>
+                        <div id="golden-keywords-container" class="space-y-3">
+                            <div class="loader"></div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/70 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-xl font-semibold mb-4 text-white">🗓️ Upcoming Events</h3>
+                        <div id="upcoming-events-container" class="space-y-3"></div>
+                    </div>
+                </div>
+                <div class="mt-6 bg-gray-800/70 p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-white">📈 Top Rising Trends This Week</h3>
+                    <div id="rising-trends-container" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <div id="view-explore" class="view hidden">
+                <h2 class="text-3xl font-bold text-white mb-6">Explore Trends</h2>
+                <div class="flex flex-wrap gap-4 mb-6 p-4 bg-gray-800/70 rounded-xl">
+                    <input type="text" id="search-keyword" placeholder="Search keyword..." class="flex-grow bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="filter-category" class="bg-gray-700 text-white rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="all">All Categories</option>
+                    </select>
+                    <select id="filter-type" class="bg-gray-700 text-white rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="all">All Types</option>
+                        <option value="photo">Photo</option>
+                        <option value="vector">Vector</option>
+                        <option value="video">Video</option>
+                    </select>
+                    <select id="filter-region" class="bg-gray-700 text-white rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 premium-feature relative">
+                        <option value="global">Global</option>
+                        <option value="jp">Japan</option>
+                        <option value="in">India</option>
+                        <option value="eu">Europe</option>
+                    </select>
+                </div>
+                <div id="explore-results-container" class="space-y-3"></div>
+                <div id="freemium-limit-msg" class="text-center mt-6 p-4 bg-yellow-900/50 border border-yellow-700 rounded-lg" style="display: none;">
+                    <p>You've reached the limit for the free plan. <a href="#" id="upgrade-link-explore" class="font-bold text-yellow-300 hover:underline">Upgrade to Premium</a> to see all results.</p>
+                </div>
+            </div>
+
+            <div id="view-calendar" class="view hidden">
+                <h2 class="text-3xl font-bold text-white mb-6">Seasonal Calendar</h2>
+                <div class="bg-gray-800/70 p-6 rounded-xl shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="prev-month" class="p-2 rounded-full hover:bg-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="m15 18-6-6 6-6"/></svg>
+                        </button>
+                        <h3 id="calendar-title" class="text-xl font-semibold text-white"></h3>
+                        <button id="next-month" class="p-2 rounded-full hover:bg-gray-700">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-2"></div>
+                </div>
+                 <div id="calendar-event-details" class="mt-6"></div>
+            </div>
+
+            <div id="view-notifications" class="view hidden">
+                <h2 class="text-3xl font-bold text-white mb-6">Notifications</h2>
+                <div id="notifications-container" class="space-y-3"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="keyword-modal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl m-4 transform transition-all duration-300 scale-95 opacity-0" id="modal-content">
+            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                <h3 id="modal-title" class="text-2xl font-bold text-white"></h3>
+                <button id="close-modal" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-lg font-semibold text-white mb-3">Scores</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center bg-gray-700/50 p-3 rounded-lg">
+                                <span class="font-medium">Demand Score</span>
+                                <span id="modal-demand" class="font-bold text-lg"></span>
+                            </div>
+                            <div class="flex justify-between items-center bg-gray-700/50 p-3 rounded-lg">
+                                <span class="font-medium">Competition Count</span>
+                                <span id="modal-competition" class="font-bold text-lg"></span>
+                            </div>
+                        </div>
+                         <h4 class="text-lg font-semibold text-white mt-6 mb-3">Related Keywords</h4>
+                         <div id="modal-related" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div class="premium-feature relative">
+                        <h4 class="text-lg font-semibold text-white mb-3">Trend History & Forecast</h4>
+                        <div class="chart-container">
+                            <canvas id="trend-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="upgrade-modal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md m-4 text-center p-8 transform transition-all duration-300 scale-95 opacity-0" id="upgrade-modal-content">
+            <h3 class="text-2xl font-bold text-amber-300 mb-2">Go Premium!</h3>
+            <p class="text-gray-300 mb-6">Unlock powerful features to stay ahead of the competition.</p>
+            <ul class="text-left space-y-3 mb-8">
+                <li class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-400 mr-3"><polyline points="20 6 9 17 4 12"/></svg>Unlimited keyword searches</li>
+                <li class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-400 mr-3"><polyline points="20 6 9 17 4 12"/></svg>Detailed trend history & forecast</li>
+                <li class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-400 mr-3"><polyline points="20 6 9 17 4 12"/></svg>Customizable alerts & notifications</li>
+                <li class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-400 mr-3"><polyline points="20 6 9 17 4 12"/></svg>Regional trend analysis</li>
+            </ul>
+            <div class="flex gap-4">
+                <button class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                    <span class="block text-lg">$15 / Month</span>
+                </button>
+                <button class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                    <span class="block text-lg">$150 Lifetime</span>
+                </button>
+            </div>
+             <button id="close-upgrade-modal" class="mt-6 text-gray-400 hover:text-white">Maybe later</button>
+        </div>
+    </div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // --- MENGAMBIL DATA DARI BACKEND API ---
@@ -61,7 +290,20 @@ document.addEventListener('DOMContentLoaded', function () {
             </p>`;
         }
     };
-    
+
+    // --- DOM ELEMENTS ---
+    const views = document.querySelectorAll('.view');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const keywordModal = document.getElementById('keyword-modal');
+    const modalContent = document.getElementById('modal-content');
+    const closeModalBtn = document.getElementById('close-modal');
+    const upgradeModal = document.getElementById('upgrade-modal');
+    const upgradeModalContent = document.getElementById('upgrade-modal-content');
+    const closeUpgradeModalBtn = document.getElementById('close-upgrade-modal');
+
+    let chartInstance = null;
+    const FREEMIUM_LIMIT = 10;
+
     // --- UTILITY FUNCTIONS ---
     const getScoreColor = (score, type = 'demand') => {
         if (type === 'competition') {
@@ -386,8 +628,5 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/weekday.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/weekOfYear.js"></script>
 </body>
 </html>
