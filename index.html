@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrendLens - Pelacak Tren Microstock</title>
+    <title>TrendLens - Microstock Trend Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
@@ -19,9 +19,18 @@
             height: 300px;
             width: 100%;
         }
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
         .active-nav {
             background-color: #2563eb;
             color: white;
+        }
+        .calendar-day {
+            transition: all 0.2s ease-in-out;
         }
         .calendar-day:hover {
             transform: scale(1.05);
@@ -39,13 +48,15 @@
             border-radius: 4px;
             font-weight: bold;
         }
+        /* Tambahkan style untuk loading spinner */
         .loader {
-            border: 4px solid #f3f3f3;
+            border: 4px solid #f3f3f330;
             border-top: 4px solid #3498db;
             border-radius: 50%;
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
+            margin: 2rem auto;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -55,7 +66,6 @@
 </head>
 <body class="bg-gray-900 text-gray-200">
     <div class="flex h-screen">
-        <!-- Sidebar Navigation -->
         <aside class="w-64 bg-gray-800/50 backdrop-blur-sm border-r border-gray-700/50 p-4 flex flex-col">
             <h1 class="text-2xl font-bold text-white mb-8">
                 Trend<span class="text-blue-500">Lens</span>
@@ -63,153 +73,293 @@
             <nav class="flex flex-col space-y-2">
                 <a href="#" id="nav-dashboard" class="nav-link active-nav flex items-center px-4 py-2 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-3"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    Dasbor
+                    Dashboard
                 </a>
                 <a href="#" id="nav-explore" class="nav-link flex items-center px-4 py-2 rounded-lg hover:bg-gray-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    Jelajahi Tren
+                    Explore Trends
                 </a>
                 <a href="#" id="nav-calendar" class="nav-link flex items-center px-4 py-2 rounded-lg hover:bg-gray-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-3"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                    Kalender Musiman
+                    Seasonal Calendar
                 </a>
                 <a href="#" id="nav-notifications" class="nav-link flex items-center px-4 py-2 rounded-lg hover:bg-gray-700 relative">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-3"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                    Notifikasi
+                    Notifications
                     <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
                 </a>
             </nav>
             <div class="mt-auto">
                 <div class="bg-blue-900/50 border border-blue-700 rounded-lg p-4 text-center">
-                    <h3 class="font-bold text-white">Buka Semua Fitur</h3>
-                    <p class="text-sm text-blue-200 mt-1 mb-3">Dapatkan akses tak terbatas ke tren, riwayat, dan notifikasi.</p>
-                    <button id="upgrade-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Upgrade Sekarang</button>
+                    <h3 class="font-bold text-white">Unlock All Features</h3>
+                    <p class="text-sm text-blue-200 mt-1 mb-3">Get unlimited access to trends, history, and alerts.</p>
+                    <button id="upgrade-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Upgrade Now</button>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-1 p-6 overflow-y-auto">
-            <!-- Dashboard View -->
             <div id="view-dashboard" class="view">
-                <h2 class="text-3xl font-bold text-white mb-6">Dasbor</h2>
+                <h2 class="text-3xl font-bold text-white mb-6">Dashboard</h2>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 bg-gray-800/70 p-6 rounded-xl shadow-lg">
-                        <h3 class="text-xl font-semibold mb-4 text-white">🌟 Kata Kunci Emas (Permintaan Tinggi, Kompetisi Rendah)</h3>
-                        <div id="golden-keywords-container" class="space-y-3"></div>
+                        <h3 class="text-xl font-semibold mb-4 text-white">🌟 Golden Keywords (High Demand, Low Competition)</h3>
+                        <div id="golden-keywords-container" class="space-y-3">
+                            <div class="loader"></div>
+                        </div>
                     </div>
                     <div class="bg-gray-800/70 p-6 rounded-xl shadow-lg">
-                        <h3 class="text-xl font-semibold mb-4 text-white">🗓️ Acara Mendatang</h3>
+                        <h3 class="text-xl font-semibold mb-4 text-white">🗓️ Upcoming Events</h3>
                         <div id="upcoming-events-container" class="space-y-3"></div>
                     </div>
                 </div>
+                <div class="mt-6 bg-gray-800/70 p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-white">📈 Top Rising Trends This Week</h3>
+                    <div id="rising-trends-container" class="space-y-3"></div>
+                </div>
             </div>
 
-            <!-- Other Views (Explore, Calendar, Notifications) can be added here -->
-            <!-- ... -->
+            <div id="view-explore" class="view hidden">
+                <h2 class="text-3xl font-bold text-white mb-6">Explore Trends</h2>
+                <div class="flex flex-wrap gap-4 mb-6 p-4 bg-gray-800/70 rounded-xl">
+                    <input type="text" id="search-keyword" placeholder="Search keyword..." class="flex-grow bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="filter-category" class="bg-gray-700 text-white rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="all">All Categories</option>
+                    </select>
+                    <select id="filter-type" class="bg-gray-700 text-white rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="all">All Types</option>
+                        <option value="photo">Photo</option>
+                        <option value="vector">Vector</option>
+                        <option value="video">Video</option>
+                    </select>
+                    <select id="filter-region" class="bg-gray-700 text-white rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 premium-feature relative">
+                        <option value="global">Global</option>
+                        <option value="jp">Japan</option>
+                        <option value="in">India</option>
+                        <option value="eu">Europe</option>
+                    </select>
+                </div>
+                <div id="explore-results-container" class="space-y-3"></div>
+                <div id="freemium-limit-msg" class="text-center mt-6 p-4 bg-yellow-900/50 border border-yellow-700 rounded-lg" style="display: none;">
+                    <p>You've reached the limit for the free plan. <a href="#" id="upgrade-link-explore" class="font-bold text-yellow-300 hover:underline">Upgrade to Premium</a> to see all results.</p>
+                </div>
+            </div>
 
+            <div id="view-calendar" class="view hidden">
+                <h2 class="text-3xl font-bold text-white mb-6">Seasonal Calendar</h2>
+                <div class="bg-gray-800/70 p-6 rounded-xl shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="prev-month" class="p-2 rounded-full hover:bg-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="m15 18-6-6 6-6"/></svg>
+                        </button>
+                        <h3 id="calendar-title" class="text-xl font-semibold text-white"></h3>
+                        <button id="next-month" class="p-2 rounded-full hover:bg-gray-700">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-2"></div>
+                </div>
+                 <div id="calendar-event-details" class="mt-6"></div>
+            </div>
+
+            <div id="view-notifications" class="view hidden">
+                <h2 class="text-3xl font-bold text-white mb-6">Notifications</h2>
+                <div id="notifications-container" class="space-y-3"></div>
+            </div>
         </main>
     </div>
-    
-    <!-- Modals can be added here -->
-    <!-- ... -->
+
+    <div id="keyword-modal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl m-4 transform transition-all duration-300 scale-95 opacity-0" id="modal-content">
+            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                <h3 id="modal-title" class="text-2xl font-bold text-white"></h3>
+                <button id="close-modal" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-lg font-semibold text-white mb-3">Scores</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center bg-gray-700/50 p-3 rounded-lg">
+                                <span class="font-medium">Demand Score</span>
+                                <span id="modal-demand" class="font-bold text-lg"></span>
+                            </div>
+                            <div class="flex justify-between items-center bg-gray-700/50 p-3 rounded-lg">
+                                <span class="font-medium">Competition Count</span>
+                                <span id="modal-competition" class="font-bold text-lg"></span>
+                            </div>
+                        </div>
+                         <h4 class="text-lg font-semibold text-white mt-6 mb-3">Related Keywords</h4>
+                         <div id="modal-related" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div class="premium-feature relative">
+                        <h4 class="text-lg font-semibold text-white mb-3">Trend History & Forecast</h4>
+                        <div class="chart-container">
+                            <canvas id="trend-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="upgrade-modal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md m-4 text-center p-8 transform transition-all duration-300 scale-95 opacity-0" id="upgrade-modal-content">
+            <h3 class="text-2xl font-bold text-amber-300 mb-2">Go Premium!</h3>
+            <p class="text-gray-300 mb-6">Unlock powerful features to stay ahead of the competition.</p>
+            <ul class="text-left space-y-3 mb-8">
+                <li class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-400 mr-3"><polyline points="20 6 9 17 4 12"/></svg>Unlimited keyword searches</li>
+                <li class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-400 mr-3"><polyline points="20 6 9 17 4 12"/></svg>Detailed trend history & forecast</li>
+                <li class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-400 mr-3"><polyline points="20 6 9 17 4 12"/></svg>Customizable alerts & notifications</li>
+                <li class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-400 mr-3"><polyline points="20 6 9 17 4 12"/></svg>Regional trend analysis</li>
+            </ul>
+            <div class="flex gap-4">
+                <button class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                    <span class="block text-lg">$15 / Month</span>
+                </button>
+                <button class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                    <span class="block text-lg">$150 Lifetime</span>
+                </button>
+            </div>
+             <button id="close-upgrade-modal" class="mt-6 text-gray-400 hover:text-white">Maybe later</button>
+        </div>
+    </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // --- KONFIGURASI PENTING ---
-    // URL backend Anda dari Replit sudah dimasukkan di sini.
-    const API_BASE_URL = "https://f1f3dbec-8c50-41ac-8410-c574d88eefaa-00-3dy8y7n6agmqb.pike.replit.dev";
+    // --- MENGAMBIL DATA DARI BACKEND API ---
+    // !!! GANTI URL DI BAWAH INI DENGAN URL PUBLIK REPLIT ANDA !!!
+    const API_URL = 'https://<URL-REPLIT-ANDA>/api/v1/trends/analyze';
+
+    let trendsData = {
+        keywords: [],
+        categories: ["Technology", "Lifestyle", "Business", "Nature", "Holiday/Seasonal", "Abstract", "People", "Food", "Travel", "Education"],
+        events: [
+            { date: "2025-09-01", name: "Back to School", keywords: ["school supplies", "education", "classroom"] },
+            { date: "2025-10-31", name: "Halloween", keywords: ["spooky", "pumpkin", "costume party"] },
+            { date: "2025-11-28", name: "Black Friday", keywords: ["sale", "shopping", "discount"] },
+            { date: "2025-12-25", name: "Christmas", keywords: ["christmas tree", "winter", "holiday season"] }
+        ],
+        notifications: [
+            { id: 1, text: "New seasonal event 'Halloween' is approaching. Prepare your content.", read: false, time: "1 day ago" },
+            { id: 2, text: "Welcome to TrendLens! Check out the dashboard for today's top trends.", read: true, time: "3 days ago" }
+        ]
+    };
+
+    const fetchData = async () => {
+        const container = document.getElementById('golden-keywords-container');
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            trendsData.keywords = data.map(item => ({
+                id: item.id,
+                keyword: item.keyword,
+                demand: item.demand_score,
+                competition: item.competition_count,
+                category: "N/A",
+                type: "N/A",
+                trend: [0, 0, 0, 0, item.demand_score],
+                rising: true, 
+                related: [] 
+            }));
+            console.log("Data successfully loaded from API:", trendsData.keywords);
+        } catch (error) {
+            console.error("Failed to fetch data from API:", error);
+            container.innerHTML = `<p class="text-center text-red-400 mt-6">
+                Could not load trend data. Make sure the API URL is correct and the backend server is running.
+            </p>`;
+        }
+    };
 
     // --- DOM ELEMENTS ---
-    const goldenKeywordsContainer = document.getElementById('golden-keywords-container');
-    const upcomingEventsContainer = document.getElementById('upcoming-events-container');
-    // ... (DOM elements lainnya tetap sama)
+    const views = document.querySelectorAll('.view');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const keywordModal = document.getElementById('keyword-modal');
+    const modalContent = document.getElementById('modal-content');
+    const closeModalBtn = document.getElementById('close-modal');
+    const upgradeModal = document.getElementById('upgrade-modal');
+    const upgradeModalContent = document.getElementById('upgrade-modal-content');
+    const closeUpgradeModalBtn = document.getElementById('close-upgrade-modal');
+
+    let chartInstance = null;
+    const FREEMIUM_LIMIT = 10;
 
     // --- UTILITY FUNCTIONS ---
-    const showLoader = (container) => {
-        container.innerHTML = `<div class="flex justify-center items-center p-8"><div class="loader"></div></div>`;
-    };
-
-    const showError = (container, message) => {
-        container.innerHTML = `<div class="text-center p-8 text-red-400 font-semibold">${message}</div>`;
-    };
-
     const getScoreColor = (score, type = 'demand') => {
-        if (type === 'demand') {
-            if (score >= 75) return 'text-green-400';
-            if (score >= 50) return 'text-yellow-400';
-            return 'text-red-400';
-        } else { // competition
-            // Semakin rendah semakin baik
-            if (score <= 500000) return 'text-green-400';
-            if (score <= 2000000) return 'text-yellow-400';
+        if (type === 'competition') {
+            if (score < 1000000) return 'text-green-400';
+            if (score < 5000000) return 'text-yellow-400';
             return 'text-red-400';
         }
+        // Demand
+        if (score >= 75) return 'text-green-400';
+        if (score >= 50) return 'text-yellow-400';
+        return 'text-red-400';
+    };
+
+    const getTrendIcon = (trend) => {
+        return `<span class="text-green-400">▲</span>`; // Asumsi semua dari API sedang naik
+    };
+    
+    const formatCompetition = (num) => {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num;
     };
 
     const createKeywordElement = (item) => {
         const element = document.createElement('div');
-        element.className = 'bg-gray-700/50 p-4 rounded-lg flex items-center justify-between hover:bg-gray-700 transition-colors cursor-pointer';
+        element.className = 'keyword-item bg-gray-700/50 p-4 rounded-lg flex items-center justify-between hover:bg-gray-700 transition-colors cursor-pointer';
         element.dataset.keywordId = item.id;
         element.innerHTML = `
             <div>
-                <p class="font-semibold text-white">${item.keyword}</p>
+                <p class="font-semibold text-white">${item.keyword} ${getTrendIcon(item.trend)}</p>
+                <p class="text-sm text-gray-400">${item.category} / ${item.type}</p>
             </div>
             <div class="flex items-center space-x-4 text-right">
                 <div>
-                    <p class="text-xs text-gray-400">Permintaan</p>
-                    <p class="font-bold ${getScoreColor(item.demand_score, 'demand')}">${item.demand_score}</p>
+                    <p class="text-xs text-gray-400">Demand</p>
+                    <p class="font-bold ${getScoreColor(item.demand, 'demand')}">${item.demand}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-400">Kompetisi</p>
-                    <p class="font-bold ${getScoreColor(item.competition_count, 'competition')}">${(item.competition_count / 1000000).toFixed(1)} Jt</p>
+                    <p class="text-xs text-gray-400">Competition</p>
+                    <p class="font-bold ${getScoreColor(item.competition, 'competition')}">${formatCompetition(item.competition)}</p>
                 </div>
             </div>
         `;
-        // element.addEventListener('click', () => openKeywordModal(item.id)); // Logika modal bisa diaktifkan kembali nanti
+        element.addEventListener('click', () => openKeywordModal(item.id));
         return element;
     };
 
-    // --- DATA FETCHING ---
-    async function fetchGoldenKeywords() {
-        // Cek jika URL belum diubah oleh pengguna
-        if (API_BASE_URL === "PASTE_YOUR_RENDER_URL_HERE") {
-            showError(goldenKeywordsContainer, "Konfigurasi Diperlukan: Harap masukkan URL API backend Anda di dalam kode JavaScript.");
-            return;
-        }
+    // --- VIEW RENDERING ---
+    const renderDashboard = () => {
+        const goldenKeywordsContainer = document.getElementById('golden-keywords-container');
+        const risingTrendsContainer = document.getElementById('rising-trends-container');
+        const upcomingEventsContainer = document.getElementById('upcoming-events-container');
 
-        showLoader(goldenKeywordsContainer);
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/trends/analyze`);
-            if (!response.ok) {
-                throw new Error(`Error HTTP! status: ${response.status}`);
-            }
-            const data = await response.json();
-            
-            goldenKeywordsContainer.innerHTML = ''; // Hapus loader
-            if (data && data.length > 0) {
-                data.forEach(item => {
-                    goldenKeywordsContainer.appendChild(createKeywordElement(item));
-                });
-            } else {
-                showError(goldenKeywordsContainer, "Tidak ada kata kunci emas yang ditemukan saat ini.");
-            }
-        } catch (error) {
-            console.error("Gagal mengambil data golden keywords:", error);
-            showError(goldenKeywordsContainer, "Tidak dapat memuat data tren. Pastikan URL API benar dan server backend sedang berjalan.");
-        }
-    }
-
-    // --- STATIC DATA (untuk fitur yang belum terhubung ke backend) ---
-    const mockEvents = [
-        { date: "2025-10-31", name: "Halloween", keywords: ["spooky", "pumpkin", "costume party"] },
-        { date: "2025-11-28", name: "Black Friday", keywords: ["sale", "shopping", "discount"] },
-        { date: "2025-12-25", name: "Natal", keywords: ["pohon natal", "musim dingin", "liburan"] }
-    ];
-
-    const renderUpcomingEvents = () => {
+        goldenKeywordsContainer.innerHTML = '';
+        risingTrendsContainer.innerHTML = '';
         upcomingEventsContainer.innerHTML = '';
-        const upcomingEvents = mockEvents
+
+        if (trendsData.keywords.length === 0 && goldenKeywordsContainer.innerHTML.includes('loader')) {
+            // Loader masih ada, jangan lakukan apa-apa
+        } else if(trendsData.keywords.length > 0) {
+            const goldenKeywords = trendsData.keywords
+                .filter(k => k.demand > 60 && k.competition < 5000000) // Logika disesuaikan dengan backend
+                .slice(0, 5);
+            goldenKeywords.forEach(item => goldenKeywordsContainer.appendChild(createKeywordElement(item)));
+
+            const risingTrends = trendsData.keywords.slice(0, 5);
+            risingTrends.forEach(item => risingTrendsContainer.appendChild(createKeywordElement(item)));
+        }
+        
+        const upcomingEvents = trendsData.events
             .filter(e => dayjs(e.date).isAfter(dayjs()))
             .slice(0, 3);
         upcomingEvents.forEach(event => {
@@ -228,22 +378,250 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
-    // --- INITIALIZATION ---
-    function initializeApp() {
-        // Ambil data asli untuk dasbor
-        fetchGoldenKeywords();
+    const renderExplore = () => {
+        const container = document.getElementById('explore-results-container');
+        const categoryFilter = document.getElementById('filter-category');
+        const freemiumMsg = document.getElementById('freemium-limit-msg');
         
-        // Tampilkan bagian lain dari data tiruan untuk sementara
-        renderUpcomingEvents();
-        // renderExplore(); // Bisa dihubungkan nanti
-        // renderCalendar();
-        // renderNotifications();
-        
-        // Atur navigasi
-        // ... (Logika navigasi tetap sama)
-    }
+        categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+        trendsData.categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.toLowerCase();
+            option.textContent = cat;
+            categoryFilter.appendChild(option);
+        });
 
-    initializeApp();
+        const applyFilters = () => {
+            const searchTerm = document.getElementById('search-keyword').value.toLowerCase();
+            
+            const filteredData = trendsData.keywords.filter(k => 
+                k.keyword.toLowerCase().includes(searchTerm)
+            );
+
+            container.innerHTML = '';
+            const dataToShow = filteredData.slice(0, FREEMIUM_LIMIT);
+            dataToShow.forEach(item => container.appendChild(createKeywordElement(item)));
+
+            freemiumMsg.style.display = filteredData.length > FREEMIUM_LIMIT ? 'block' : 'none';
+        };
+
+        document.getElementById('search-keyword').addEventListener('input', applyFilters);
+        // Hapus filter yang tidak relevan karena data backend tidak memilikinya
+        document.getElementById('filter-category').style.display = 'none';
+        document.getElementById('filter-type').style.display = 'none';
+        document.getElementById('filter-region').addEventListener('change', (e) => {
+            if (e.target.value !== 'global') {
+                openUpgradeModal();
+                e.target.value = 'global';
+            }
+        });
+        
+        applyFilters();
+    };
+    
+    // --- CALENDAR LOGIC ---
+    let currentDate = dayjs();
+    const renderCalendar = () => {
+        dayjs.extend(window.dayjs_plugin_weekday);
+        dayjs.extend(window.dayjs_plugin_weekOfYear);
+
+        const calendarGrid = document.getElementById('calendar-grid');
+        const calendarTitle = document.getElementById('calendar-title');
+        const eventDetailsContainer = document.getElementById('calendar-event-details');
+
+        calendarGrid.innerHTML = '';
+        eventDetailsContainer.innerHTML = '';
+        calendarTitle.textContent = currentDate.format('MMMM YYYY');
+
+        const startOfMonth = currentDate.startOf('month');
+        const endOfMonth = currentDate.endOf('month');
+        const startDay = startOfMonth.weekday();
+
+        const daysInMonth = [];
+        for (let i = 0; i < startDay; i++) {
+            daysInMonth.push(null);
+        }
+        for (let i = 1; i <= endOfMonth.date(); i++) {
+            daysInMonth.push(startOfMonth.date(i));
+        }
+
+        const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        weekDays.forEach(day => {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'text-center font-bold text-gray-400 text-sm';
+            dayEl.textContent = day;
+            calendarGrid.appendChild(dayEl);
+        });
+
+        daysInMonth.forEach(day => {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'calendar-day p-2 text-center rounded-lg cursor-pointer';
+            if (day) {
+                dayEl.textContent = day.date();
+                const event = trendsData.events.find(e => dayjs(e.date).isSame(day, 'day'));
+                if (event) {
+                    dayEl.classList.add('bg-blue-600', 'text-white', 'font-bold', 'relative');
+                    dayEl.innerHTML += `<span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-yellow-300 rounded-full"></span>`;
+                    dayEl.addEventListener('click', () => showEventDetails(event));
+                }
+                if (day.isSame(dayjs(), 'day')) {
+                    dayEl.classList.add('border-2', 'border-blue-400');
+                }
+            } else {
+                dayEl.classList.add('opacity-0');
+            }
+            calendarGrid.appendChild(dayEl);
+        });
+    };
+
+    const showEventDetails = (event) => {
+        const container = document.getElementById('calendar-event-details');
+        container.innerHTML = `
+            <div class="bg-gray-700/50 p-4 rounded-lg">
+                <h4 class="text-lg font-semibold text-white">${event.name} - ${dayjs(event.date).format('MMMM D')}</h4>
+                <p class="text-gray-300 mt-2">Recommended Keywords:</p>
+                <div class="flex flex-wrap gap-2 mt-2">
+                    ${event.keywords.map(kw => `<span class="bg-blue-500/50 text-blue-200 text-sm font-medium px-2.5 py-0.5 rounded-full">${kw}</span>`).join('')}
+                </div>
+            </div>`;
+    };
+
+    document.getElementById('prev-month').addEventListener('click', () => {
+        currentDate = currentDate.subtract(1, 'month');
+        renderCalendar();
+    });
+    document.getElementById('next-month').addEventListener('click', () => {
+        currentDate = currentDate.add(1, 'month');
+        renderCalendar();
+    });
+
+    const renderNotifications = () => {
+        const container = document.getElementById('notifications-container');
+        container.innerHTML = '';
+        trendsData.notifications.forEach(notif => {
+            const el = document.createElement('div');
+            el.className = `p-4 rounded-lg flex justify-between items-center ${notif.read ? 'bg-gray-800/50' : 'bg-blue-900/50 border border-blue-700'}`;
+            el.innerHTML = `
+                <div>
+                    <p class="text-white">${notif.text}</p>
+                    <p class="text-sm text-gray-400">${notif.time}</p>
+                </div>
+                ${!notif.read ? '<button class="text-sm text-blue-300 hover:underline">Mark as read</button>' : ''}
+            `;
+            container.appendChild(el);
+        });
+    };
+
+    // --- MODAL LOGIC ---
+    const openKeywordModal = (id) => {
+        const item = trendsData.keywords.find(k => k.id === id);
+        if (!item) return;
+
+        document.getElementById('modal-title').textContent = item.keyword;
+        document.getElementById('modal-demand').textContent = item.demand;
+        document.getElementById('modal-demand').className = `font-bold text-lg ${getScoreColor(item.demand, 'demand')}`;
+        document.getElementById('modal-competition').textContent = formatCompetition(item.competition);
+        document.getElementById('modal-competition').className = `font-bold text-lg ${getScoreColor(item.competition, 'competition')}`;
+        
+        const relatedContainer = document.getElementById('modal-related');
+        relatedContainer.innerHTML = item.related.map(kw => `<span class="bg-gray-600 text-gray-200 text-xs font-medium px-2 py-1 rounded-full">${kw}</span>`).join('');
+
+        keywordModal.classList.remove('hidden');
+        setTimeout(() => {
+            modalContent.classList.remove('scale-95', 'opacity-0');
+            modalContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+
+        // Chart.js rendering
+        const chartCanvas = document.getElementById('trend-chart');
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+        chartInstance = new Chart(chartCanvas, {
+            type: 'line',
+            data: {
+                labels: ['-4w', '-3w', '-2w', 'Last Week', 'This Week'],
+                datasets: [{
+                    label: 'Popularity Trend',
+                    data: item.trend,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } },
+                    x: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#9ca3af' } }
+                }
+            }
+        });
+    };
+
+    const closeKeywordModal = () => {
+        modalContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => keywordModal.classList.add('hidden'), 300);
+    };
+    
+    const openUpgradeModal = () => {
+        upgradeModal.classList.remove('hidden');
+        setTimeout(() => {
+            upgradeModalContent.classList.remove('scale-95', 'opacity-0');
+            upgradeModalContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    };
+
+    const closeUpgradeModal = () => {
+        upgradeModalContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => upgradeModal.classList.add('hidden'), 300);
+    };
+
+    closeModalBtn.addEventListener('click', closeKeywordModal);
+    keywordModal.addEventListener('click', (e) => {
+        if (e.target === keywordModal) closeKeywordModal();
+    });
+    
+    document.getElementById('upgrade-btn').addEventListener('click', openUpgradeModal);
+    document.getElementById('upgrade-link-explore').addEventListener('click', (e) => {
+        e.preventDefault();
+        openUpgradeModal();
+    });
+    closeUpgradeModalBtn.addEventListener('click', closeUpgradeModal);
+    upgradeModal.addEventListener('click', (e) => {
+        if (e.target === upgradeModal) closeUpgradeModal();
+    });
+
+
+    // --- NAVIGATION ---
+    const switchView = (viewId) => {
+        views.forEach(view => view.classList.add('hidden'));
+        document.getElementById(viewId).classList.remove('hidden');
+
+        navLinks.forEach(link => link.classList.remove('active-nav'));
+        document.getElementById(`nav-${viewId.split('-')[1]}`).classList.add('active-nav');
+    };
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const viewId = `view-${link.id.split('-')[1]}`;
+            switchView(viewId);
+        });
+    });
+
+    // --- INITIALIZATION ---
+    // Panggil fungsi fetchData, kemudian setelah selesai, render semua bagian
+    fetchData().then(() => {
+        renderDashboard();
+        renderExplore();
+        renderCalendar();
+        renderNotifications();
+        switchView('view-dashboard');
+    });
 });
 </script>
 </body>
