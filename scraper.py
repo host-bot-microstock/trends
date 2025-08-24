@@ -1,118 +1,127 @@
-# scraper.py
-# Versi perbaikan dengan anti-blocking dan tambahan Adobe Stock.
+# scraper.py (Revisi Lengkap untuk Perbaikan Akhir)
 
 import requests
 from bs4 import BeautifulSoup
 from pytrends.request import TrendReq
-import pandas as pd
 import time
 import random
+import os
+
+# Import baru untuk Selenium
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import NoSuchElementException
+from webdriver_manager.chrome import ChromeDriverManager
+
+# --- Daftar User-Agent untuk Rotasi ---
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36'
+]
+
+
+def get_random_user_agent():
+    """Mengembalikan User-Agent acak."""
+    return random.choice(USER_AGENTS)
+
 
 # --- Fungsi untuk Mengukur Permintaan (Demand) ---
-
 def get_google_trends_score(keyword: str) -> int:
     """
-    Mengambil skor popularitas dari Google Trends untuk sebuah keyword.
+    Mengambil skor popularitas dari Google Trends dengan jeda yang lebih lama.
     """
     try:
-        time.sleep(random.uniform(2, 5))
-        pytrends = TrendReq(hl='en-US', tz=360)
-        pytrends.build_payload([keyword], cat=0, timeframe='today 3-m', geo='', gprop='')
+        time.sleep(random.uniform(8, 12))
+        # Argumen 'method_whitelist' Dihapus karena tidak valid
+        pytrends = TrendReq(hl='en-US', tz=360, retries=3, backoff_factor=0.5)
+        pytrends.build_payload([keyword],
+                               cat=0,
+                               timeframe='today 3-m',
+                               geo='',
+                               gprop='')
         interest_over_time_df = pytrends.interest_over_time()
-        
-        if interest_over_time_df.empty:
-            print(f"Peringatan: Tidak ada data Google Trends untuk '{keyword}'.")
+
+        if interest_over_time_df.empty or keyword not in interest_over_time_df.columns:
+            print(
+                f"Peringatan: Tidak ada data Google Trends untuk '{keyword}'.")
             return 0
-            
+
         last_score = interest_over_time_df[keyword].iloc[-1]
         print(f"Skor Google Trends untuk '{keyword}': {last_score}")
         return int(last_score)
 
     except Exception as e:
-        print(f"Error saat mengambil data Google Trends untuk '{keyword}': {e}")
+        print(
+            f"Error saat mengambil data Google Trends untuk '{keyword}': {e}")
         return 0
 
-# --- Fungsi untuk Mengukur Kompetisi (Supply) ---
 
-def get_shutterstock_competition(keyword: str) -> int:
+# --- Fungsi untuk Mengukur Kompetisi (Supply) dengan SELENIUM yang Diperbaiki ---
+def get_shutterstock_competition_selenium(keyword: str) -> int:
     """
-    Melakukan scraping ke Shutterstock untuk mengetahui jumlah aset (kompetisi).
+    Melakukan scraping ke Shutterstock menggunakan Selenium dengan konfigurasi Replit.
     """
-    time.sleep(random.uniform(1, 4))
-    formatted_keyword = keyword.replace(' ', '+')
+    print(
+        f"Menganalisis Shutterstock untuk '{keyword}' menggunakan Selenium...")
+    formatted_keyword = keyword.replace(' ', '-')
     url = f"https://www.shutterstock.com/search/{formatted_keyword}"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-    }
-    
+
+    # Setup Opsi Chrome agar bisa berjalan di Replit
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument(f"user-agent={get_random_user_agent()}")
+    chrome_options.add_argument("window-size=1920,1080")
+
+    # Menentukan lokasi biner Chrome di Replit
+    chrome_options.binary_location = '/usr/bin/google-chrome'
+
+    driver = None
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-        result_element = soup.find('span', class_=lambda x: x and x.startswith('MuiTypography-root MuiTypography-body1'))
+        # Menentukan lokasi driver yang diinstal oleh webdriver-manager
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver.get(url)
 
-        if result_element:
-            result_text = result_element.get_text(strip=True)
-            number_str = ''.join(filter(str.isdigit, result_text))
-            if number_str:
-                competition_count = int(number_str)
-                print(f"Jumlah kompetisi di Shutterstock untuk '{keyword}': {competition_count}")
-                return competition_count
+        # Jeda acak untuk meniru perilaku manusia dan menunggu halaman dimuat
+        time.sleep(random.uniform(4, 6))
 
-        print(f"Peringatan: Tidak dapat menemukan jumlah kompetisi Shutterstock untuk '{keyword}'.")
+        # Mencari elemen yang berisi jumlah hasil
+        result_element = driver.find_element(
+            By.XPATH, "//*[contains(text(), 'stock images')]")
+
+        result_text = result_element.text
+        # Ekstrak hanya angka dari teks
+        number_str = ''.join(
+            filter(str.isdigit,
+                   result_text.split("stock images")[0]))
+
+        if number_str:
+            competition_count = int(number_str)
+            print(
+                f"Jumlah kompetisi di Shutterstock untuk '{keyword}': {competition_count}"
+            )
+            return competition_count
+
+        print(
+            f"Peringatan: Tidak dapat menemukan jumlah kompetisi Shutterstock untuk '{keyword}'."
+        )
+        return 0
+
+    except NoSuchElementException:
+        print(
+            f"Peringatan: Elemen jumlah kompetisi tidak ditemukan di halaman untuk '{keyword}'."
+        )
         return 0
     except Exception as e:
-        print(f"Error saat request ke Shutterstock untuk '{keyword}': {e}")
+        print(
+            f"Error saat scraping Selenium ke Shutterstock untuk '{keyword}': {e}"
+        )
         return 0
-
-def get_adobe_stock_competition(keyword: str) -> int:
-    """
-    Melakukan scraping ke Adobe Stock untuk mengetahui jumlah aset (kompetisi).
-    """
-    time.sleep(random.uniform(1, 4))
-    formatted_keyword = keyword.replace(' ', '+')
-    url = f"https://stock.adobe.com/search?k={formatted_keyword}"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-    }
-    
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-        # Adobe Stock menggunakan class 'nb-results' untuk menampilkan jumlah
-        result_element = soup.find('span', class_='nb-results')
-
-        if result_element:
-            result_text = result_element.get_text(strip=True)
-            # Teksnya bisa "12,345 Results" atau "12.345 Ergebnisse" tergantung bahasa
-            number_str = ''.join(filter(str.isdigit, result_text))
-            if number_str:
-                competition_count = int(number_str)
-                print(f"Jumlah kompetisi di Adobe Stock untuk '{keyword}': {competition_count}")
-                return competition_count
-
-        print(f"Peringatan: Tidak dapat menemukan jumlah kompetisi Adobe Stock untuk '{keyword}'.")
-        return 0
-    except Exception as e:
-        print(f"Error saat request ke Adobe Stock untuk '{keyword}': {e}")
-        return 0
-
-
-# --- Blok untuk Testing ---
-if __name__ == "__main__":
-    test_keywords = ["AI generated background", "sustainable lifestyle"]
-    
-    print("--- Memulai Pengujian Scraper ---")
-    for kw in test_keywords:
-        print(f"\n--- Menganalisis Keyword: '{kw}' ---")
-        
-        demand = get_google_trends_score(kw)
-        shutterstock_comp = get_shutterstock_competition(kw)
-        adobe_stock_comp = get_adobe_stock_competition(kw)
-        
-        print("--- Hasil Analisis ---")
-        print(f"Demand Score (Google Trends): {demand}")
-        print(f"Shutterstock Competition: {shutterstock_comp}")
-        print(f"Adobe Stock Competition: {adobe_stock_comp}")
-        print("------------------------")
+    finally:
+        if driver:
+            driver.quit()
